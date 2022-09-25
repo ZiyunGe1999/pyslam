@@ -80,14 +80,16 @@ else
     # N.B.: pay attention this will generate a module 'pangolin' 
     if [ ! -d pangolin ]; then
         if [[ "$OSTYPE" == "linux-gnu"* ]]; then    
-            sudo apt-get install -y libglew-dev
+            apt-get install -y libglew-dev
             git clone https://github.com/uoip/pangolin.git
             cd pangolin
             PANGOLIN_UOIP_REVISION=3ac794a
             git checkout $PANGOLIN_UOIP_REVISION
             cd ..      
             # copy local changes 
-            rsync ./pangolin_changes/python_CMakeLists.txt ./pangolin/python/CMakeLists.txt             
+            rsync ./pangolin_changes/python_CMakeLists.txt ./pangolin/python/CMakeLists.txt
+            rsync ./pangolin_changes/FindFFMPEG.cmake ./pangolin/CMakeModules/FindFFMPEG.cmake
+            rsync ./pangolin_changes/ffmpeg.cpp ./pangolin/src/video/drivers/ffmpeg.cpp
         fi 
         if [[ "$OSTYPE" == "darwin"* ]]; then
             git clone --recursive https://gitlab.com/luigifreda/pypangolin.git pangolin 
@@ -112,7 +114,7 @@ print_blue "Configuring and building thirdparty/g2o ..."
 cd thirdparty
 if [ ! -d g2opy ]; then
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        sudo apt-get install -y libsuitesparse-dev libeigen3-dev
+        apt-get install -y libsuitesparse-dev libeigen3-dev
     fi     
 	git clone https://github.com/uoip/g2opy.git
     cd g2opy

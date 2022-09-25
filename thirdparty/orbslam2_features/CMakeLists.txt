@@ -26,13 +26,14 @@ message(STATUS "opencv libs: ${OpenCV_LIBS}")
 
 
 # the following 2 lines are added to correctly detect the python version 
-if(WITH_PYTHON_INTERP_CHECK)
+#if(WITH_PYTHON_INTERP_CHECK)
   message(STATUS "WITH_PYTHON_INTERP_CHECK: ${WITH_PYTHON_INTERP_CHECK}")
   find_package(PythonInterp) 
   find_package(PythonLibs)
   message(STATUS "PythonInterp: ${PythonInterp}")
   message(STATUS "PythonLibs: ${PythonLibs}")
-endif()
+  message(STATUS "PythonInclude: ${PYTHON_INCLUDE_DIRS}") 
+  #endif()
 
 
 include_directories(

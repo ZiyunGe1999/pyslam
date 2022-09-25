@@ -42,7 +42,7 @@ function check_package(){
 function install_package(){
     do_install=$(check_package $1)
     if [ $do_install -eq 1 ] ; then
-        sudo apt-get install -y $1
+        apt-get install -y $1
     fi 
 }
 
