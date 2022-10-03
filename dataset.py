@@ -203,6 +203,8 @@ class FolderDataset(Dataset):
         self._timestamp = 0.        
             
     def getImage(self, frame_id):
+        if self.i == self.maxlen - 1:
+            self.is_ok = False
         if self.i == self.maxlen:
             return (None, False)
         image_file = self.listing[self.i]

@@ -84,14 +84,15 @@ if __name__ == "__main__":
     slam = Slam(cam, feature_tracker, groundtruth)
     time.sleep(1) # to show initial messages 
 
-    viewer3D = Viewer3D()
+    # viewer3D = Viewer3D()
     
-    if platform.system()  == 'Linux':    
-        display2d = Display2D(cam.width, cam.height)  # pygame interface 
-    else: 
-        display2d = None  # enable this if you want to use opencv window
+    # if platform.system()  == 'Linux':
+    #     display2d = Display2D(cam.width, cam.height)  # pygame interface
+    # else:
+    #     display2d = None  # enable this if you want to use opencv window
+    # display2d = None
 
-    matched_points_plt = Mplot2d(xlabel='img id', ylabel='# matches',title='# matches')    
+    # matched_points_plt = Mplot2d(xlabel='img id', ylabel='# matches',title='# matches')
 
     do_step = False   
     is_paused = False 
@@ -106,89 +107,89 @@ if __name__ == "__main__":
             if img is None:
                 print('image is empty')
                 getchar()
-            timestamp = dataset.getTimestamp()          # get current timestamp 
-            next_timestamp = dataset.getNextTimestamp() # get next timestamp 
-            frame_duration = next_timestamp-timestamp 
+            timestamp = dataset.getTimestamp()          # get current timestamp
+            next_timestamp = dataset.getNextTimestamp() # get next timestamp
+            frame_duration = next_timestamp-timestamp
 
             if img is not None:
-                time_start = time.time()                  
-                slam.track(img, img_id, timestamp)  # main SLAM function 
-                                
+                time_start = time.time()
+                slam.track(img, img_id, timestamp)  # main SLAM function
+
                 # 3D display (map display)
-                if viewer3D is not None:
-                    viewer3D.draw_map(slam)
+                # if viewer3D is not None:
+                #     viewer3D.draw_map(slam)
 
-                img_draw = slam.map.draw_feature_trails(img)
-                    
+                # img_draw = slam.map.draw_feature_trails(img)
+
                 # 2D display (image display)
-                if display2d is not None:
-                    display2d.draw(img_draw)
-                else: 
-                    cv2.imshow('Camera', img_draw)
+                # if display2d is not None:
+                #     display2d.draw(img_draw)
+                # else:
+                #     cv2.imshow('Camera', img_draw)
 
-                if matched_points_plt is not None: 
-                    if slam.tracking.num_matched_kps is not None: 
-                        matched_kps_signal = [img_id, slam.tracking.num_matched_kps]     
-                        matched_points_plt.draw(matched_kps_signal,'# keypoint matches',color='r')                         
-                    if slam.tracking.num_inliers is not None: 
-                        inliers_signal = [img_id, slam.tracking.num_inliers]                    
-                        matched_points_plt.draw(inliers_signal,'# inliers',color='g')
-                    if slam.tracking.num_matched_map_points is not None: 
-                        valid_matched_map_points_signal = [img_id, slam.tracking.num_matched_map_points]   # valid matched map points (in current pose optimization)                                       
-                        matched_points_plt.draw(valid_matched_map_points_signal,'# matched map pts', color='b')  
-                    if slam.tracking.num_kf_ref_tracked_points is not None: 
-                        kf_ref_tracked_points_signal = [img_id, slam.tracking.num_kf_ref_tracked_points]                    
-                        matched_points_plt.draw(kf_ref_tracked_points_signal,'# $KF_{ref}$  tracked pts',color='c')   
-                    if slam.tracking.descriptor_distance_sigma is not None: 
-                        descriptor_sigma_signal = [img_id, slam.tracking.descriptor_distance_sigma]                    
-                        matched_points_plt.draw(descriptor_sigma_signal,'descriptor distance $\sigma_{th}$',color='k')                                                                 
-                    matched_points_plt.refresh()    
-                
-                duration = time.time()-time_start 
+                # if matched_points_plt is not None:
+                #     if slam.tracking.num_matched_kps is not None:
+                #         matched_kps_signal = [img_id, slam.tracking.num_matched_kps]
+                #         matched_points_plt.draw(matched_kps_signal,'# keypoint matches',color='r')
+                #     if slam.tracking.num_inliers is not None:
+                #         inliers_signal = [img_id, slam.tracking.num_inliers]
+                #         matched_points_plt.draw(inliers_signal,'# inliers',color='g')
+                #     if slam.tracking.num_matched_map_points is not None:
+                #         valid_matched_map_points_signal = [img_id, slam.tracking.num_matched_map_points]   # valid matched map points (in current pose optimization)
+                #         matched_points_plt.draw(valid_matched_map_points_signal,'# matched map pts', color='b')
+                #     if slam.tracking.num_kf_ref_tracked_points is not None:
+                #         kf_ref_tracked_points_signal = [img_id, slam.tracking.num_kf_ref_tracked_points]
+                #         matched_points_plt.draw(kf_ref_tracked_points_signal,'# $KF_{ref}$  tracked pts',color='c')
+                #     if slam.tracking.descriptor_distance_sigma is not None:
+                #         descriptor_sigma_signal = [img_id, slam.tracking.descriptor_distance_sigma]
+                #         matched_points_plt.draw(descriptor_sigma_signal,'descriptor distance $\sigma_{th}$',color='k')
+                #     matched_points_plt.refresh()
+
+                duration = time.time()-time_start
                 if(frame_duration > duration):
                     print('sleeping for frame')
-                    time.sleep(frame_duration-duration)        
+                    time.sleep(frame_duration-duration)
                     
             img_id += 1  
         else:
             time.sleep(1)                                 
         
         # get keys 
-        key = matched_points_plt.get_key()  
-        key_cv = cv2.waitKey(1) & 0xFF    
+        # key = matched_points_plt.get_key()
+        # key_cv = cv2.waitKey(1) & 0xFF
         
         # manage interface infos  
         
-        if slam.tracking.state==SlamState.LOST:
-            if display2d is not None:     
-                getchar()                              
-            else: 
-                key_cv = cv2.waitKey(0) & 0xFF   # useful when drawing stuff for debugging 
+        # if slam.tracking.state==SlamState.LOST:
+        #     if display2d is not None:
+        #         getchar()
+        #     else:
+        #         key_cv = cv2.waitKey(0) & 0xFF   # useful when drawing stuff for debugging
          
-        if do_step and img_id > 1:
-            # stop at each frame
-            if display2d is not None:            
-                getchar()  
-            else: 
-                key_cv = cv2.waitKey(0) & 0xFF         
+        # if do_step and img_id > 1:
+        #     # stop at each frame
+        #     if display2d is not None:
+        #         getchar()
+        #     else:
+        #         key_cv = cv2.waitKey(0) & 0xFF
         
-        if key == 'd' or (key_cv == ord('d')):
-            do_step = not do_step  
-            Printer.green('do step: ', do_step) 
+        # if key == 'd' or (key_cv == ord('d')):
+        #     do_step = not do_step
+        #     Printer.green('do step: ', do_step)
                       
-        if key == 'q' or (key_cv == ord('q')):
-            if display2d is not None:
-                display2d.quit()
-            if viewer3D is not None:
-                viewer3D.quit()
-            if matched_points_plt is not None:
-                matched_points_plt.quit()
-            break
+        # if key == 'q' or (key_cv == ord('q')):
+        #     # if display2d is not None:
+        #     #     display2d.quit()
+        #     # if viewer3D is not None:
+        #     #     viewer3D.quit()
+        #     if matched_points_plt is not None:
+        #         matched_points_plt.quit()
+        #     break
         
-        if viewer3D is not None:
-            is_paused = not viewer3D.is_paused()         
+        # if viewer3D is not None:
+        #     is_paused = not viewer3D.is_paused()
                         
     slam.quit()
     
-    #cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()

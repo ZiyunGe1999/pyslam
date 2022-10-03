@@ -15,6 +15,7 @@ enter_docker_env:
 		-v `pwd`:/pyslam \
 		-v /tmp/.X11-unix:/tmp/.X11-unix \
         -v ~/.Xauthority:/root/.Xauthority \
+        -v ~/data:/data \
         -e DISPLAY=${DISPLAY} \
         -e GDK_SCALE \
         -e GDK_DPI_SCALE \
