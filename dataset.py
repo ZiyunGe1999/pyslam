@@ -197,24 +197,25 @@ class FolderDataset(Dataset):
         self.listing = self.listing[::self.skip]
         #print('list of files: ', self.listing)
         self.maxlen = len(self.listing)
-        self.i = 0        
+        # self.i = 0        
         if self.maxlen == 0:
           raise IOError('No images were found in folder: ', path)   
         self._timestamp = 0.        
             
     def getImage(self, frame_id):
-        if self.i == self.maxlen - 1:
+        if frame_id == self.maxlen - 1:
             self.is_ok = False
-        if self.i == self.maxlen:
+        if frame_id == self.maxlen:
             return (None, False)
-        image_file = self.listing[self.i]
+        image_file = self.listing[frame_id]
+        print(f'reading file at {image_file}')
         img = cv2.imread(image_file)
         self._timestamp += self.Ts
         self._next_timestamp = self._timestamp + self.Ts         
         if img is None: 
             raise IOError('error reading file: ', image_file)               
         # Increment internal counter.
-        self.i = self.i + 1
+        # self.i = self.i + 1
         return img
 
 class FolderDatasetParallelStatus:

@@ -51,8 +51,15 @@ from feature_tracker_configs import FeatureTrackerConfigs
 from parameters import Parameters  
 import multiprocessing as mp 
 
+from trajectory_output import outputTrajectory
+import sys
+
 
 if __name__ == "__main__":
+
+    trajectory_filename = 'output/trajectory.txt'
+    if len(sys.argv) > 1:
+        trajectory_filename = sys.argv[1]
 
     config = Config()
 
@@ -190,6 +197,7 @@ if __name__ == "__main__":
         #     is_paused = not viewer3D.is_paused()
                         
     slam.quit()
+    outputTrajectory(slam.map.keyframes, trajectory_filename)
     
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
