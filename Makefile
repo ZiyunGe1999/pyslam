@@ -11,6 +11,7 @@ docker_build:
 
 enter_docker_env:
 	docker run --rm \
+		--gpus all \
 		--network host \
 		-v `pwd`:/pyslam \
 		-v /tmp/.X11-unix:/tmp/.X11-unix \
