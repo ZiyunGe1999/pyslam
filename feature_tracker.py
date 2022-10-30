@@ -212,8 +212,8 @@ class DescriptorFeatureTracker(FeatureTracker):
 
 
     # out: keypoints and descriptors 
-    def detectAndCompute(self, frame, mask=None):
-        return self.feature_manager.detectAndCompute(frame, mask) 
+    def detectAndCompute(self, frame, id=None, mask=None):
+        return self.feature_manager.detectAndCompute(frame, id, mask) 
 
 
     # out: FeatureTrackingResult()

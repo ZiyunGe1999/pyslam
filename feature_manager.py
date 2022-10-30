@@ -130,6 +130,7 @@ class FeatureManager(object):
         self.block_adaptor = None
         
         # pyramid adaptor options: at present time pyramid adaptor has the priority and can combine a block adaptor withint itself         
+        self.load_features_from_files = False
         self.use_pyramid_adaptor = False 
         self.pyramid_adaptor = None 
         self.pyramid_type = PyramidType.RESIZE
@@ -918,10 +919,15 @@ class FeatureManager(object):
 
     # detect keypoints and their descriptors
     # out: kps, des 
-    def detectAndCompute(self, frame, mask=None, filter = True):
+    def detectAndCompute(self, frame, id=None, mask=None, filter = True):
         if not self.need_color_image and frame.ndim>2:     # check if we have to convert to gray image 
             frame = cv2.cvtColor(frame,cv2.COLOR_RGB2GRAY)  
-        if self.use_pyramid_adaptor:  
+        if self.load_features_from_files:
+            kps, des = self._feature_detector.loadFeaturesFromFiles(id)
+            if kVerbose:
+                    print('detector:', self.detector_type.name,', #features:',len(kps))           
+                    print('descriptor:', self.descriptor_type.name,', #features:',len(kps))    
+        elif self.use_pyramid_adaptor:  
             # detectAndCompute with pyramid adaptor (it can optionally include a block adaptor per level)
             if self.force_multiscale_detect_and_compute: 
                 # force detectAndCompute on each level instead of first {detect() on each level} and then {compute() on resulting detected keypoints one time}
@@ -967,7 +973,11 @@ class FeatureManager(object):
         if kVerbose:
             print('detector:',self.detector_type.name,', descriptor:', self.descriptor_type.name,', #features:', len(kps),' (#ref:', self.num_features, '), [kp-filter:',filter_name,']')                                         
         self.debug_print(kps)             
-        return kps, des             
+        return kps, des   
+
+    def setLoadFeaturesFromFiles(self, kapture_dataset_path):
+        self.load_features_from_files = True    
+        self._feature_detector.setLoadFeaturesFromFiles(kapture_dataset_path)
  
  
     def debug_print(self, kps): 

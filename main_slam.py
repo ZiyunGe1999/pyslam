@@ -86,6 +86,7 @@ if __name__ == "__main__":
     
     print('tracker_config: ',tracker_config)    
     feature_tracker = feature_tracker_factory(**tracker_config)
+    feature_tracker.feature_manager.setLoadFeaturesFromFiles(config.dataset_settings['kapture_dataset_path'])
     
     # create SLAM object 
     slam = Slam(cam, feature_tracker, groundtruth)

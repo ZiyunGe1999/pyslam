@@ -37,6 +37,11 @@ import argparse
 
 from utils_sys import Printer 
 
+import kapture
+import kapture.io.csv as csv
+from kapture.io.image import image_keypoints_to_image_file
+from kapture.io.features import keypoints_to_filepaths, image_keypoints_from_file,descriptors_to_filepaths, image_descriptors_from_file
+
 
 kVerbose = True 
 
@@ -159,9 +164,9 @@ class R2d2Feature2D:
     def __init__(self,
                  num_features = 2000, 
                  scale_f   = 2**0.25, 
-                 min_size  = 256, 
-                 max_size  = 1300, #1024,                   
-                 min_scale = 0, 
+                 min_size  = 128, 
+                 max_size  = 9999, #1024,                   
+                 min_scale = 0.3, 
                  max_scale = 1,                
                  reliability_thr   = 0.7,   
                  repeatability_thr = 0.7,  
@@ -176,6 +181,10 @@ class R2d2Feature2D:
         self.kps = []        
         self.des = []
         self.frame = None    
+
+        self.kapture_dataset_path = None
+        self.kapture_data = None
+        self.tar_handlers = None
                 
         self.num_features = num_features
         self.scale_f   = scale_f 
@@ -234,7 +243,40 @@ class R2d2Feature2D:
             kps = convert_pts_to_keypoints(self.pts, scores, sizes, levels)
             return kps, des                  
             
-        
+    def loadFeaturesFromFiles(self, id):
+        with self.lock:
+            image_name = f'images/Query_{str(id).zfill(8)}.jpg'
+            keypoints_type = 'r2d2_WASF_N8_big'
+            keypoints_filepaths = keypoints_to_filepaths(self.kapture_data.keypoints[keypoints_type], keypoints_type, self.kapture_dataset_path, self.tar_handlers)
+            keypoints_filepath = keypoints_filepaths[image_name]
+            keypoints_data = image_keypoints_from_file(filepath=keypoints_filepath,
+                                            dsize=self.kapture_data.keypoints[keypoints_type].dsize,
+                                            dtype=self.kapture_data.keypoints[keypoints_type].dtype)
+            keypoints_data = np.array(keypoints_data)
+            
+            descriptors_type = 'r2d2_WASF_N8_big'
+            descriptors_filepaths = descriptors_to_filepaths(self.kapture_data.descriptors[descriptors_type], descriptors_type, self.kapture_dataset_path, self.tar_handlers)
+            descriptors_filepath = descriptors_filepaths[image_name]
+            descriptors_data = image_descriptors_from_file(filepath=descriptors_filepath,
+                                            dsize=self.kapture_data.descriptors[descriptors_type].dsize,
+                                            dtype=self.kapture_data.descriptors[descriptors_type].dtype)
+            descriptors_data = np.array(descriptors_data)
+            
+            self.pts = keypoints_data[:,:2]
+            sizes = keypoints_data[:,2]
+            des = descriptors_data
+            scores = keypoints_data[:,3]
+            levels = keypoints_data[:,4]
+
+            kps = convert_pts_to_keypoints(self.pts, scores, sizes, levels)
+            return kps, des
+
+    
+    def setLoadFeaturesFromFiles(self, kapture_dataset_path):
+        self.kapture_dataset_path = kapture_dataset_path
+        self.tar_handlers = csv.get_all_tar_handlers(kapture_dataset_path)
+        self.kapture_data = csv.kapture_from_dir(kapture_dataset_path, tar_handlers=self.tar_handlers)
+
     def detectAndCompute(self, frame, mask=None):  #mask is a fake input  
         with self.lock:
             self.frame = frame         
