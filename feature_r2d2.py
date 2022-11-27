@@ -42,6 +42,8 @@ import kapture.io.csv as csv
 from kapture.io.image import image_keypoints_to_image_file
 from kapture.io.features import keypoints_to_filepaths, image_keypoints_from_file,descriptors_to_filepaths, image_descriptors_from_file
 
+from frame_id_imagename_converter import frame_id_to_imagename
+
 
 kVerbose = True 
 
@@ -154,7 +156,7 @@ def convert_pts_to_keypoints(pts, scores, sizes, levels):
     kps = []
     if pts is not None: 
         # convert matrix [Nx2] of pts into list of keypoints  
-        kps = [ cv2.KeyPoint(p[0], p[1], size=sizes[i], response=scores[i], octave=levels[i]) for i,p in enumerate(pts) ]                      
+        kps = [ cv2.KeyPoint(p[0], p[1], size=sizes[i], response=scores[i], octave=int(levels[i])) for i,p in enumerate(pts) ]                      
     return kps         
 
  
@@ -245,7 +247,7 @@ class R2d2Feature2D:
             
     def loadFeaturesFromFiles(self, id):
         with self.lock:
-            image_name = f'images/Query_{str(id).zfill(8)}.jpg'
+            image_name = frame_id_to_imagename(id)
             keypoints_type = 'r2d2_WASF_N8_big'
             keypoints_filepaths = keypoints_to_filepaths(self.kapture_data.keypoints[keypoints_type], keypoints_type, self.kapture_dataset_path, self.tar_handlers)
             keypoints_filepath = keypoints_filepaths[image_name]

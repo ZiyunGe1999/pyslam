@@ -12,3 +12,5 @@ RUN apt install -y x11-apps
 
 ADD . /pyslam
 RUN cd /pyslam && ./clean.sh && ./install_all.sh
+
+RUN pip3 install kapture

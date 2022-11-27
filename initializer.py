@@ -34,6 +34,13 @@ from camera  import Camera, PinholeCamera
 from utils_sys import Printer
 from parameters import Parameters  
 
+import kapture
+import kapture.io.csv as csv
+
+from read_write_model import read_images_text, read_points3D_text, Image, Point3D
+
+from frame_id_imagename_converter import frame_id_to_imagename
+
 
 kVerbose=True     
 kRansacThresholdNormalized = 0.0003  # metric threshold used for normalized image coordinates 
@@ -68,6 +75,10 @@ class Initializer(object):
         self.num_min_features = Parameters.kInitializerNumMinFeatures
         self.num_min_triangulated_points = Parameters.kInitializerNumMinTriangulatedPoints       
         self.num_failures = 0 
+
+        self.using_kapture_data = False
+        self.images = None
+        self.points3D = None
         
     def reset(self):
         self.frames.clear()
@@ -92,6 +103,36 @@ class Initializer(object):
     def init(self, f_cur):
         self.frames.append(f_cur)    
         self.f_ref = f_cur           
+
+    def setInitializerUsingKapture(self, colmap_dataset_path):
+        self.using_kapture_data = True
+
+        images_path = f'{colmap_dataset_path}/images.txt'
+        print(f'loading images.txt at {images_path}')
+        self.images = read_images_text(images_path)
+        print(f'generating imagename_images_id_lookup_dict')
+        self.imagename_images_id_lookup_dict = dict()
+        for image_id, image in self.images.items():
+            self.imagename_images_id_lookup_dict[image.name] = image_id
+
+        points3D_path = f'{colmap_dataset_path}/points3D.txt'
+        print(f'loading points3D.txt at {points3D_path}')
+        self.points3D = read_points3D_text(points3D_path)
+
+    def extractObservations(self, colmap_info1: Image, colmap_info2: Image):
+        indice1, indice2, point3ds = [], [], []
+        for index, point3d_id in enumerate(colmap_info1.point3D_ids):
+            if point3d_id >= 0:
+                point3d: Point3D = self.points3D[point3d_id]
+                for image_id_index, imgae_id in enumerate(point3d.image_ids):
+                    if imgae_id == colmap_info2.id:
+                        point2d_id1 = index
+                        point2d_id2 = point3d.point2D_idxs[image_id_index]
+                        indice1.append(point2d_id1)
+                        indice2.append(point2d_id2)
+                        point3ds.append(point3d.xyz)
+        return np.array(indice1), np.array(indice2), np.array(point3ds)
+        
 
     # actually initialize having two available images 
     def initialize(self, f_cur, img_cur):
@@ -127,41 +168,78 @@ class Initializer(object):
             Printer.red('Inializer: ko - not enough features!') 
             self.num_failures += 1
             return out, is_ok
-
-        # find keypoint matches
-        idxs_cur, idxs_ref = match_frames(f_cur, f_ref, kFeatureMatchRatioTestInitializer)       
-    
-        print('|------------')        
-        #print('deque ids: ', [f.id for f in self.frames])
-        print('initializing frames ', f_cur.id, ', ', f_ref.id)
-        print("# keypoint matches: ", len(idxs_cur))  
-                
-        Trc = self.estimatePose(f_ref.kpsn[idxs_ref], f_cur.kpsn[idxs_cur])
-        Tcr = inv_T(Trc)  # Tcr w.r.t. ref frame 
-        f_ref.update_pose(np.eye(4))        
-        f_cur.update_pose(Tcr)
-
-        # remove outliers from keypoint matches by using the mask computed with inter frame pose estimation        
-        mask_idxs = (self.mask_match.ravel() == 1)
-        self.num_inliers = sum(mask_idxs)
-        print('# keypoint inliers: ', self.num_inliers )
-        idx_cur_inliers = idxs_cur[mask_idxs]
-        idx_ref_inliers = idxs_ref[mask_idxs]
-
-        # create a temp map for initializing 
-        map = Map()
-        f_ref.reset_points()
-        f_cur.reset_points()
         
-        #map.add_frame(f_ref)        
-        #map.add_frame(f_cur)  
+        if self.using_kapture_data == False:
+            # find keypoint matches
+            idxs_cur, idxs_ref = match_frames(f_cur, f_ref, kFeatureMatchRatioTestInitializer)       
         
-        kf_ref = KeyFrame(f_ref)
-        kf_cur = KeyFrame(f_cur, img_cur)        
-        map.add_keyframe(kf_ref)        
-        map.add_keyframe(kf_cur)      
-        
-        pts3d, mask_pts3d = triangulate_normalized_points(kf_cur.Tcw, kf_ref.Tcw, kf_cur.kpsn[idx_cur_inliers], kf_ref.kpsn[idx_ref_inliers])
+            print('|------------')        
+            #print('deque ids: ', [f.id for f in self.frames])
+            print('initializing frames ', f_cur.id, ', ', f_ref.id)
+            print("# keypoint matches: ", len(idxs_cur))  
+                    
+            Trc = self.estimatePose(f_ref.kpsn[idxs_ref], f_cur.kpsn[idxs_cur])
+            Tcr = inv_T(Trc)  # Tcr w.r.t. ref frame 
+            f_ref.update_pose(np.eye(4))        
+            f_cur.update_pose(Tcr)
+
+            # remove outliers from keypoint matches by using the mask computed with inter frame pose estimation        
+            mask_idxs = (self.mask_match.ravel() == 1)
+            self.num_inliers = sum(mask_idxs)
+            print('# keypoint inliers: ', self.num_inliers )
+            idx_cur_inliers = idxs_cur[mask_idxs]
+            idx_ref_inliers = idxs_ref[mask_idxs]
+
+            # create a temp map for initializing 
+            map = Map()
+            f_ref.reset_points()
+            f_cur.reset_points()
+            
+            #map.add_frame(f_ref)        
+            #map.add_frame(f_cur)  
+            
+            kf_ref = KeyFrame(f_ref)
+            kf_cur = KeyFrame(f_cur, img_cur)        
+            map.add_keyframe(kf_ref)        
+            map.add_keyframe(kf_cur)      
+            
+            pts3d, mask_pts3d = triangulate_normalized_points(kf_cur.Tcw, kf_ref.Tcw, kf_cur.kpsn[idx_cur_inliers], kf_ref.kpsn[idx_ref_inliers])
+        else:
+            print('|------------')        
+            print('initializing frames using kapture data', f_cur.id, ', ', f_ref.id)
+
+            f_cur_imagename = frame_id_to_imagename(f_cur.id)
+            f_ref_imagename = frame_id_to_imagename(f_ref.id)
+            f_cur_image_id = self.imagename_images_id_lookup_dict[f_cur_imagename]
+            f_ref_image_id = self.imagename_images_id_lookup_dict[f_ref_imagename]
+            # print(f'f_cur.des size: {len(f_cur.des)}')
+            # print(f'colmap data images observations size: {len(self.images[f_cur_image_id].xys)}')
+            f_cur_colmap_info = self.images[f_cur_image_id]
+            f_ref_colmap_info = self.images[f_ref_image_id]
+            
+            f_cur_Rcw = f_cur_colmap_info.qvec2rotmat()
+            f_cur_tcw = f_cur_colmap_info.tvec
+            f_cur_Tcw = poseRt(f_cur_Rcw, f_cur_tcw)
+            f_ref_Rcw = f_ref_colmap_info.qvec2rotmat()
+            f_ref_tcw = f_ref_colmap_info.tvec
+            f_ref_Tcw = poseRt(f_ref_Rcw, f_ref_tcw)
+            # Tcr = f_cur_Tcw @ np.linalg.inv(f_ref_Tcw)
+            f_ref.update_pose(f_ref_Tcw)        
+            f_cur.update_pose(f_cur_Tcw)
+
+            idx_cur_inliers, idx_ref_inliers, pts3d = self.extractObservations(f_cur_colmap_info, f_ref_colmap_info)
+
+            map = Map()
+            f_ref.reset_points()
+            f_cur.reset_points()
+
+            kf_ref = KeyFrame(f_ref)
+            kf_cur = KeyFrame(f_cur, img_cur)        
+            map.add_keyframe(kf_ref)        
+            map.add_keyframe(kf_cur)
+
+            mask_pts3d = None
+
 
         new_pts_count, mask_points, _ = map.add_points(pts3d, mask_pts3d, kf_cur, kf_ref, idx_cur_inliers, idx_ref_inliers, img_cur, do_check=True, cos_max_parallax=Parameters.kCosMaxParallaxInitializer)
         print("# triangulated points: ", new_pts_count)   

@@ -90,6 +90,7 @@ if __name__ == "__main__":
     
     # create SLAM object 
     slam = Slam(cam, feature_tracker, groundtruth)
+    slam.setInitializerUsingKapture(config.dataset_settings['colmap_dataset_path'])
     time.sleep(1) # to show initial messages 
 
     # viewer3D = Viewer3D()

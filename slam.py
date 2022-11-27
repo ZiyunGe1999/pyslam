@@ -113,7 +113,9 @@ class Slam(object):
         self.groundtruth = groundtruth  # not actually used here; could be used for evaluating performances 
         self.tracking = Tracking(self)
 
-        
+    def setInitializerUsingKapture(self, colmap_dataset_path):
+       self.tracking.intializer.setInitializerUsingKapture(colmap_dataset_path)
+
     def quit(self):
         if kLocalMappingOnSeparateThread:
             self.local_mapping.quit()                       
